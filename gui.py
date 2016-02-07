@@ -1,9 +1,32 @@
 from tkinter import *
 import messenger
 
+def sendMessage(event):
+    pass
+
+def refreshHistoryWindow(event):
+    pass
+
 def openChatWindow(event):
-    ID = event.widget.master.userID
-    print(ID)
+    userInfo = messenger.getUserInfo(event.widget.master.userID)
+    historyWindow = Toplevel(dialogWindow)
+    historyWindow.title(userInfo['Name'])
+    historyWindow.minsize(width = 580, height = 425)
+    historyWindow.maxsize(width = 580, height = 425)
+    refreshButton = Button(historyWindow, text = 'Обновить')
+    refreshButton.bind('<Button-1>', refreshHistoryWindow)
+    refreshButton.place(x = 500, y = 0, width = 80, height = 25)
+    status = Label(historyWindow, text = userInfo['IsOnline'])
+    status.place(x = 0, y = 0, width = 80, height = 25)
+    historyMemo = Text(historyWindow, wrap = WORD)
+    historyMemo.place(x = 0, y = 25, width = 580, height = 350)
+    chatMemo = Text(historyWindow, wrap = WORD)
+    chatMemo.place(x = 0, y = 375, width = 500, height = 50)
+    sendButton = Button(historyWindow, text = 'Отправить')
+    sendButton.bind('<Button-1>', sendMessage)
+    sendButton.bind('<Button-1>', refreshHistoryWindow)
+    sendButton.place(x = 500, y = 375, width = 80, height = 50)
+    historyWindow.mainloop()
 
 def openInfoWindow(event):
     userInfo = messenger.getUserInfo(event.widget.master.userID)

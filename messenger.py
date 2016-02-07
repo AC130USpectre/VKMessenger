@@ -31,7 +31,6 @@ def getVKdialogsList():
 
 def getUserInfo(ID):
     Info = api.users.get(user_ids = str(ID), fields = 'sex,bdate,online,status,last_seen,relation,friend_status')[0]
-    print(Info)
     ans = {}
     ans['ID'] = str(Info['uid'])
     ans['Name'] = Info['last_name'] + ' ' + Info['first_name']
