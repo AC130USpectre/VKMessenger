@@ -2,33 +2,52 @@ from tkinter import *
 import messenger
 
 def sendMessage(event):
-    pass
+    if event.widget.master.isChat:
+        pass
+    else:
+        messenger.sendMessage(event.widget.master.userID, event.widget.master.chat.get(1.0, END))
+        event.widget.master.chat.delete(1.0, END)
 
 def refreshHistoryWindow(event):
-    pass
+    event.widget.config(relief = 'sunken')
+    if event.widget.master.isChat:
+        pass
+    else:
+        history = messenger.getHistory(event.widget.master.userID)
+        event.widget.master.history.delete(1.0, END)
+        event.widget.master.history.insert(END, '\n'.join(history))
+        event.widget.master.history.see(END)
 
 def openChatWindow(event):
-    userInfo = messenger.getUserInfo(event.widget.master.userID)
+    event.widget.config(relief = 'sunken')
     historyWindow = Toplevel(dialogWindow)
+    userInfo = messenger.getUserInfo(event.widget.master.userID)
     historyWindow.title(userInfo['Name'])
     historyWindow.minsize(width = 580, height = 425)
     historyWindow.maxsize(width = 580, height = 425)
     refreshButton = Button(historyWindow, text = 'Обновить')
     refreshButton.bind('<Button-1>', refreshHistoryWindow)
+    refreshButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
     refreshButton.place(x = 500, y = 0, width = 80, height = 25)
     status = Label(historyWindow, text = userInfo['IsOnline'])
     status.place(x = 0, y = 0, width = 80, height = 25)
     historyMemo = Text(historyWindow, wrap = WORD)
     historyMemo.place(x = 0, y = 25, width = 580, height = 350)
+    historyWindow.history = historyMemo
     chatMemo = Text(historyWindow, wrap = WORD)
     chatMemo.place(x = 0, y = 375, width = 500, height = 50)
+    historyWindow.chat = chatMemo
     sendButton = Button(historyWindow, text = 'Отправить')
     sendButton.bind('<Button-1>', sendMessage)
-    sendButton.bind('<Button-1>', refreshHistoryWindow)
+    sendButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
+    sendButton.bind('<Button-1>', refreshHistoryWindow, sendMessage)
     sendButton.place(x = 500, y = 375, width = 80, height = 50)
+    historyWindow.userID = event.widget.master.userID
+    historyWindow.isChat = event.widget.master.isChat
     historyWindow.mainloop()
 
 def openInfoWindow(event):
+    event.widget.config(relief = 'sunken')
     userInfo = messenger.getUserInfo(event.widget.master.userID)
     infoWindow = Toplevel(dialogWindow)
     infoWindow.title(userInfo['ID'])
@@ -60,11 +79,17 @@ class Dialog(Frame):
         openDialogButton = Button(self, text = 'Сообщения')
         openDialogButton.grid(row = 3, column = 1)
         openDialogButton.bind('<Button-1>', openChatWindow)
+        openDialogButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
         openInfoButton = Button(self, text = 'Инфо')
         openInfoButton.grid(row = 3, column = 2)
         openInfoButton.bind('<Button-1>', openInfoWindow)
+        openInfoButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
         self.grid(row = num, column = 1)
-        self.userID = VKDialog['UserID']
+        if VKDialog['IsChat']:
+            self.userID = ans['ChatID']
+        else:
+            self.userID = VKDialog['UserID']
+        self.isChat = VKDialog['IsChat']
 
 dialogWindow = Tk()
 dialogWindow.wm_title('VKMessenger')
@@ -72,6 +97,7 @@ refreshDialogsButton = Button(dialogWindow, text = 'Обновить диало�
 refreshDialogsButton.grid(row = 1, column = 1)
 dialogFramesList = []
 def refreshDialogsList(event):
+    event.widget.config(relief = 'sunken')
     for dialog in dialogFramesList:
         dialog.destroy()
         dialogFramesList.remove(dialog)
@@ -82,4 +108,5 @@ def refreshDialogsList(event):
         i += 1
     
 refreshDialogsButton.bind('<Button-1>', refreshDialogsList)
+refreshDialogsButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
 dialogWindow.mainloop()

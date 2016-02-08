@@ -8,6 +8,29 @@ def unixTimeConvert(unix_time):
 with open('access_token.txt', 'r') as file:
     api = vk.API(vk.Session(access_token = file.readline()))
 
+def sendMessage(ID, text):
+    print(type(ID), type(text))
+    api.messages.send(user_id = ID, message = text)
+
+def getHistory(userID):
+    messages = api.messages.getHistory(user_id = str(userID), count = 200)
+    history = []
+    for message in messages:
+        if type(message) != int:
+            text = {1 : 'ОТ ВАС', 0 : 'ОТ СОБЕСЕДНИКА'}[message['out']] + '\n' + \
+                   unixTimeConvert(message['date']) + '\n' + \
+                   {0 : 'НЕ ПРОЧИТАНО', 1 : 'ПРОЧИТАНО'}[message['read_state']] + '\n'
+            if 'title' in message:
+                text = text + message['title'] + '\n'
+            if 'body' in message:
+                text = text + message['body'] + '\n'
+            if 'attachments' in message:
+                text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ!\n'
+            if 'fwd_messages' in message:
+                text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ СООБЩЕНИЯ!\n'
+            history.append(text)
+    return history[::-1]
+
 def getVKdialogsList():
     VKdialogs = api.messages.getDialogs(count = 10)
     IDS = []
@@ -26,6 +49,8 @@ def getVKdialogsList():
             ans['UserID'] = message['uid']
             ans['Status'] = {0: 'Оффлайн', 1: 'Онлайн'}[Users[message['uid']]['online']]
             ans['IsChat'] = 'chat_id' in message
+            if 'chat_id' in message:
+                ans['ChatID'] = message['chat_id']
             result.append(ans)
     return result
 
