@@ -17,20 +17,28 @@ def refreshHistoryWindow(event):
         event.widget.master.history.delete(1.0, END)
         event.widget.master.history.insert(END, '\n'.join(history))
         event.widget.master.history.see(END)
+        userInfo = messenger.getUserInfo(event.widget.master.userID)
+        event.widget.master.userStatus.config(text = userInfo['IsOnline'])
 
 def openChatWindow(event):
     event.widget.config(relief = 'sunken')
     historyWindow = Toplevel(dialogWindow)
-    userInfo = messenger.getUserInfo(event.widget.master.userID)
-    historyWindow.title(userInfo['Name'])
     historyWindow.minsize(width = 580, height = 425)
     historyWindow.maxsize(width = 580, height = 425)
     refreshButton = Button(historyWindow, text = 'Обновить')
     refreshButton.bind('<Button-1>', refreshHistoryWindow)
     refreshButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
     refreshButton.place(x = 500, y = 0, width = 80, height = 25)
-    status = Label(historyWindow, text = userInfo['IsOnline'])
-    status.place(x = 0, y = 0, width = 80, height = 25)
+    historyWindow.userID = event.widget.master.userID
+    historyWindow.isChat = event.widget.master.isChat
+    if historyWindow.isChat:
+        pass
+    else:
+        userInfo = messenger.getUserInfo(historyWindow.userID)
+        historyWindow.title(userInfo['Name'])
+        status = Label(historyWindow, text = userInfo['IsOnline'])
+        status.place(x = 0, y = 0, width = 80, height = 25)
+        historyWindow.userStatus = status
     historyMemo = Text(historyWindow, wrap = WORD)
     historyMemo.place(x = 0, y = 25, width = 580, height = 350)
     historyWindow.history = historyMemo
@@ -42,8 +50,6 @@ def openChatWindow(event):
     sendButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
     sendButton.bind('<Button-1>', refreshHistoryWindow, sendMessage)
     sendButton.place(x = 500, y = 375, width = 80, height = 50)
-    historyWindow.userID = event.widget.master.userID
-    historyWindow.isChat = event.widget.master.isChat
     historyWindow.mainloop()
 
 def openInfoWindow(event):

@@ -9,8 +9,48 @@ with open('access_token.txt', 'r') as file:
     api = vk.API(vk.Session(access_token = file.readline()))
 
 def sendMessage(ID, text):
-    print(type(ID), type(text))
     api.messages.send(user_id = ID, message = text)
+
+smiles = {
+    128522 : ':-)',
+    128515 : ':-D',
+    128521 : ';-)',
+    128518 : 'xD',
+    128540 : ';-P',
+    128523 : ':-p',
+    128525 : '8-)',
+    128526 : 'B-)',
+    128530 : ':-(',
+    128527 : ';-]',
+    128532 : '3(',
+    128546 : ":'(",
+    128557 : ':_(',
+    128553 : ':((',
+    128552 : ':o',
+    128528 : ':|',
+    128524 : '3-)',
+    128519 : 'O:)',
+    128560 : ';o',
+    128562 : '8o',
+    128563 : '8|',
+    128567 : ':X',
+    128538 : ':-*',
+    128544 : '>(',
+    128545 : '>((',
+    128564 : 'z_Z'
+}
+
+def replaceSmiles(text):
+    ans = ''
+    for c in text:
+        if ord(c) > 2 ** 16:
+            if ord(c) in smiles:
+                ans = ans + smiles[ord(c)]
+            else:
+                ans = ans + '~' + str(ord(c)) + '~'
+        else:
+            ans = ans + c
+    return ans
 
 def getHistory(userID):
     messages = api.messages.getHistory(user_id = str(userID), count = 200)
@@ -23,7 +63,7 @@ def getHistory(userID):
             if 'title' in message:
                 text = text + message['title'] + '\n'
             if 'body' in message:
-                text = text + message['body'] + '\n'
+                text = text + replaceSmiles(message['body']) + '\n'
             if 'attachments' in message:
                 text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ!\n'
             if 'fwd_messages' in message:
