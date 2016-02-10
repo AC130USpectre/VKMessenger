@@ -52,7 +52,7 @@ def openChatWindow(event):
     sendButton.place(x = 500, y = 375, width = 80, height = 50)
     historyWindow.mainloop()
 
-def openInfoWindow(event):
+def openUserInfoWindow(event):
     event.widget.config(relief = 'sunken')
     userInfo = messenger.getUserInfo(event.widget.master.userID)
     infoWindow = Toplevel(dialogWindow)
@@ -75,12 +75,23 @@ def openInfoWindow(event):
     relation.grid(row = 6, column = 1, columnspan = 2)
     infoWindow.mainloop()
 
+def openChatInfoWindow(event):
+    event.widget.config(relief = 'sunken')
+    (chatInfo, chatTitle) = messenger.getChatInfo(event.widget.master.userID)
+    infoWindow = Toplevel(dialogWindow)
+    infoWindow.title(chatTitle)
+    for i in range(len(chatInfo)):
+        Label(infoWindow, text = chatInfo[i]['Name']).grid(row = (i + 1), column = 1)
+        Label(infoWindow, text = chatInfo[i]['Status']).grid(row = (i + 1), column = 2)
+        Label(infoWindow, text = chatInfo[i]['LastSeenTime']).grid(row = (i + 1), column = 3)
+    infoWindow.mainloop()
+
 class Dialog(Frame):
     def __init__(self, window, VKDialog, num):
         super(Dialog, self).__init__(window, bd = 2, bg = {False: 'white', True : 'yellow'}[VKDialog['IsChat']], relief = 'solid')
         status = Label(self, text = VKDialog['Status'], bg = 'white')
         status.grid(row = 1, column = 2)
-        name = Label(self, text = VKDialog['UserName'], bg = 'white')
+        name = Label(self, text = VKDialog['UserName'], bg = {False: 'white', True : 'yellow'}[VKDialog['IsChat']])
         name.grid(row = 2, column = 1, columnspan = 2)
         openDialogButton = Button(self, text = 'Сообщения')
         openDialogButton.grid(row = 3, column = 1)
@@ -88,11 +99,15 @@ class Dialog(Frame):
         openDialogButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
         openInfoButton = Button(self, text = 'Инфо')
         openInfoButton.grid(row = 3, column = 2)
-        openInfoButton.bind('<Button-1>', openInfoWindow)
+        if VKDialog['IsChat']:
+            openInfoButton.bind('<Button-1>', openChatInfoWindow)
+        else:
+            openInfoButton.bind('<Button-1>', openUserInfoWindow)
         openInfoButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
         self.grid(row = num, column = 1)
         if VKDialog['IsChat']:
-            self.userID = ans['ChatID']
+            self.userID = VKDialog['ChatID']
+            status.destroy()
         else:
             self.userID = VKDialog['UserID']
         self.isChat = VKDialog['IsChat']

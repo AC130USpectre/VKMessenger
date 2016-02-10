@@ -91,6 +91,7 @@ def getVKdialogsList():
             ans['IsChat'] = 'chat_id' in message
             if 'chat_id' in message:
                 ans['ChatID'] = message['chat_id']
+                ans['UserName'] = message['title']
             result.append(ans)
     return result
 
@@ -126,3 +127,15 @@ def getUserInfo(ID):
     friendStatus = {0 : 'Пользователь не является другом', 1 : 'Отправлена заявка/подписка пользователю', 2 : 'Имеется входящая заявка/подписка от пользователя', 3 : 'Пользователь является другом'}
     ans['FriendStatus'] = friendStatus[Info['friend_status']]
     return ans
+
+def getChatInfo(ID):
+    chatInfo = api.messages.getChat(chat_id = ID, fields = 'uid,first_name,last_name,online,last_seen')
+    ans = []
+    for user in chatInfo['users']:
+        usr = {}
+        usr['Name'] = user['last_name'] + ' ' + user['first_name']
+        usr['Status'] = {0 : 'Оффлайн', 1 : 'Онлайн'}[user['online']]
+        usr['ID'] = user['uid']
+        usr['LastSeenTime'] = unixTimeConvert(user['last_seen']['time'])
+        ans.append(usr)
+    return (ans, chatInfo['title'])
