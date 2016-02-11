@@ -1,6 +1,8 @@
 from tkinter import *
 import messenger
 
+sys.stdout = open('logs.txt', 'w')
+
 def sendMessage(event):
     if event.widget.master.isChat:
         pass
