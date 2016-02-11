@@ -6,10 +6,13 @@ def unixTimeConvert(unix_time):
     return '{}/{}/{} {}:{}:{}'.format(time.day, time.month, time.year, time.hour, time.minute, time.second)
 
 with open('access_token.txt', 'r') as file:
-    api = vk.API(vk.Session(access_token = file.readline()))
+    api = vk.API(vk.Session(access_token = file.readline()), v='5.45', lang = 'ru')
 
 def sendMessage(ID, text):
     api.messages.send(user_id = ID, message = text)
+
+def sendChatMessage(ID, text):
+    api.messages.send(chat_id = ID, message = text)
 
 smiles = {
     128522 : ':-)',
@@ -52,53 +55,75 @@ def replaceSmiles(text):
             ans = ans + c
     return ans
 
-def getHistory(userID):
+def getUserHistory(userID):
     messages = api.messages.getHistory(user_id = str(userID), count = 200)
     history = []
-    for message in messages:
-        if type(message) != int:
-            text = {1 : 'ОТ ВАС', 0 : 'ОТ СОБЕСЕДНИКА'}[message['out']] + '\n' + \
-                   unixTimeConvert(message['date']) + '\n' + \
-                   {0 : 'НЕ ПРОЧИТАНО', 1 : 'ПРОЧИТАНО'}[message['read_state']] + '\n'
-            if 'title' in message:
-                text = text + message['title'] + '\n'
-            if 'body' in message:
-                text = text + replaceSmiles(message['body']) + '\n'
-            if 'attachments' in message:
-                text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ!\n'
-            if 'fwd_messages' in message:
-                text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ СООБЩЕНИЯ!\n'
-            history.append(text)
+    for message in messages['items']:
+        text = {1 : 'ОТ ВАС', 0 : 'ОТ СОБЕСЕДНИКА'}[message['out']] + '\n' + \
+               unixTimeConvert(message['date']) + '\n' + \
+               {0 : 'НЕ ПРОЧИТАНО', 1 : 'ПРОЧИТАНО'}[message['read_state']] + '\n'
+        if 'title' in message:
+            text = text + message['title'] + '\n'
+        if 'body' in message:
+            text = text + replaceSmiles(message['body']) + '\n'
+        if 'attachments' in message:
+            text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ!\n'
+        if 'fwd_messages' in message:
+            text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ СООБЩЕНИЯ!\n'
+        history.append(text)
+    return history[::-1]
+
+def getChatHistory(chatID):
+    messages = api.messages.getHistory(peer_id = 2000000000 + chatID, count = 200)
+    IDS = []
+    for message in messages['items']:
+        IDS.append(str(message['user_id']))
+    VKUsers = api.users.get(user_ids = ','.join(IDS))
+    Users = {}
+    for user in VKUsers:
+        Users[user['id']] = user
+    history = []
+    for message in messages['items']:
+        if message['out']:
+            text = 'ОТ ВАС\n'
+        else:
+            text = Users[message['user_id']]['last_name'] + ' ' + Users[message['user_id']]['first_name'] + '\n'
+        text = text + unixTimeConvert(message['date']) + '\n'
+        if 'body' in message:
+            text = text + replaceSmiles(message['body']) + '\n'
+        if 'attachments' in message:
+            text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ!\n'
+        if 'fwd_messages' in message:
+            text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ СООБЩЕНИЯ!\n'
+        history.append(text)
     return history[::-1]
 
 def getVKdialogsList():
     VKdialogs = api.messages.getDialogs(count = 10)
     IDS = []
-    for message in VKdialogs:
-        if type(message) != int:
-            IDS.append(str(message['uid']))
+    for message in VKdialogs['items']:
+        IDS.append(str(message['message']['user_id']))
     VKUsers = api.users.get(user_ids = ','.join(IDS), fields = 'online')
     Users = {}
     for user in VKUsers:
-        Users[user['uid']] = user
+        Users[user['id']] = user
     result = []
-    for message in VKdialogs:
-        if type(message) != int:
-            ans = {}
-            ans['UserName'] = Users[message['uid']]['last_name'] + ' ' + Users[message['uid']]['first_name']
-            ans['UserID'] = message['uid']
-            ans['Status'] = {0: 'Оффлайн', 1: 'Онлайн'}[Users[message['uid']]['online']]
-            ans['IsChat'] = 'chat_id' in message
-            if 'chat_id' in message:
-                ans['ChatID'] = message['chat_id']
-                ans['UserName'] = message['title']
-            result.append(ans)
+    for message in VKdialogs['items']:
+        ans = {}
+        ans['UserName'] = Users[message['message']['user_id']]['last_name'] + ' ' + Users[message['message']['user_id']]['first_name']
+        ans['UserID'] = message['message']['user_id']
+        ans['Status'] = {0: 'Оффлайн', 1: 'Онлайн'}[Users[message['message']['user_id']]['online']]
+        ans['IsChat'] = 'chat_id' in message['message']
+        if 'chat_id' in message['message']:
+            ans['ChatID'] = message['message']['chat_id']
+            ans['UserName'] = message['message']['title']
+        result.append(ans)
     return result
 
 def getUserInfo(ID):
     Info = api.users.get(user_ids = str(ID), fields = 'sex,bdate,online,status,last_seen,relation,friend_status')[0]
     ans = {}
-    ans['ID'] = str(Info['uid'])
+    ans['ID'] = str(Info['id'])
     ans['Name'] = Info['last_name'] + ' ' + Info['first_name']
     if 'deactivated' in Info:
         ans['Sex'] = 'Не указан'
@@ -135,7 +160,7 @@ def getChatInfo(ID):
         usr = {}
         usr['Name'] = user['last_name'] + ' ' + user['first_name']
         usr['Status'] = {0 : 'Оффлайн', 1 : 'Онлайн'}[user['online']]
-        usr['ID'] = user['uid']
+        usr['ID'] = user['id']
         usr['LastSeenTime'] = unixTimeConvert(user['last_seen']['time'])
         ans.append(usr)
     return (ans, chatInfo['title'])

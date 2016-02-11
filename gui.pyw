@@ -5,7 +5,8 @@ sys.stdout = open('logs.txt', 'w')
 
 def sendMessage(event):
     if event.widget.master.isChat:
-        pass
+        messenger.sendChatMessage(event.widget.master.userID, event.widget.master.chat.get(1.0, END))
+        event.widget.master.chat.delete(1.0, END)
     else:
         messenger.sendMessage(event.widget.master.userID, event.widget.master.chat.get(1.0, END))
         event.widget.master.chat.delete(1.0, END)
@@ -13,12 +14,19 @@ def sendMessage(event):
 def refreshHistoryWindow(event):
     event.widget.config(relief = 'sunken')
     if event.widget.master.isChat:
-        pass
-    else:
-        history = messenger.getHistory(event.widget.master.userID)
+        history = messenger.getChatHistory(event.widget.master.userID)
+        event.widget.master.history.config(state = 'normal')
         event.widget.master.history.delete(1.0, END)
         event.widget.master.history.insert(END, '\n'.join(history))
         event.widget.master.history.see(END)
+        event.widget.master.history.config(state = 'disabled')
+    else:
+        history = messenger.getUserHistory(event.widget.master.userID)
+        event.widget.master.history.config(state = 'normal')
+        event.widget.master.history.delete(1.0, END)
+        event.widget.master.history.insert(END, '\n'.join(history))
+        event.widget.master.history.see(END)
+        event.widget.master.history.config(state = 'disabled')
         userInfo = messenger.getUserInfo(event.widget.master.userID)
         event.widget.master.userStatus.config(text = userInfo['IsOnline'])
 
@@ -34,7 +42,8 @@ def openChatWindow(event):
     historyWindow.userID = event.widget.master.userID
     historyWindow.isChat = event.widget.master.isChat
     if historyWindow.isChat:
-        pass
+        (info, title) = messenger.getChatInfo(historyWindow.userID)
+        historyWindow.title(title)
     else:
         userInfo = messenger.getUserInfo(historyWindow.userID)
         historyWindow.title(userInfo['Name'])
@@ -43,6 +52,7 @@ def openChatWindow(event):
         historyWindow.userStatus = status
     historyMemo = Text(historyWindow, wrap = WORD)
     historyMemo.place(x = 0, y = 25, width = 580, height = 350)
+    historyMemo.config(state = 'disabled')
     historyWindow.history = historyMemo
     chatMemo = Text(historyWindow, wrap = WORD)
     chatMemo.place(x = 0, y = 375, width = 500, height = 50)
