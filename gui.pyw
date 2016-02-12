@@ -101,8 +101,8 @@ def openChatInfoWindow(event):
 class Dialog(Frame):
     def __init__(self, window, VKDialog, num):
         super(Dialog, self).__init__(window, bd = 2, bg = {False: 'white', True : 'yellow'}[VKDialog['IsChat']], relief = 'solid')
-        status = Label(self, text = VKDialog['Status'], bg = 'white')
-        status.grid(row = 1, column = 2)
+        unreadNum = Label(self, text = str(VKDialog['UnreadCount']), bg = {False: 'white', True : 'yellow'}[VKDialog['IsChat']])
+        unreadNum.grid(row = 1, column = 1)
         name = Label(self, text = VKDialog['UserName'], bg = {False: 'white', True : 'yellow'}[VKDialog['IsChat']])
         name.grid(row = 2, column = 1, columnspan = 2)
         openDialogButton = Button(self, text = 'Сообщения')
@@ -113,15 +113,14 @@ class Dialog(Frame):
         openInfoButton.grid(row = 3, column = 2)
         if VKDialog['IsChat']:
             openInfoButton.bind('<Button-1>', openChatInfoWindow)
+            self.userID = VKDialog['ChatID']
         else:
             openInfoButton.bind('<Button-1>', openUserInfoWindow)
+            self.userID = VKDialog['UserID']
+            status = Label(self, text = VKDialog['Status'], bg = 'white')
+            status.grid(row = 1, column = 2)
         openInfoButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
         self.grid(row = num, column = 1)
-        if VKDialog['IsChat']:
-            self.userID = VKDialog['ChatID']
-            status.destroy()
-        else:
-            self.userID = VKDialog['UserID']
         self.isChat = VKDialog['IsChat']
 
 dialogWindow = Tk()
@@ -143,3 +142,5 @@ def refreshDialogsList(event):
 refreshDialogsButton.bind('<Button-1>', refreshDialogsList)
 refreshDialogsButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
 dialogWindow.mainloop()
+
+sys.stdout.close()

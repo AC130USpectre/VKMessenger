@@ -114,6 +114,10 @@ def getVKdialogsList():
         ans['UserID'] = message['message']['user_id']
         ans['Status'] = {0: 'Оффлайн', 1: 'Онлайн'}[Users[message['message']['user_id']]['online']]
         ans['IsChat'] = 'chat_id' in message['message']
+        if 'unread' in message:
+            ans['UnreadCount'] = message['unread']
+        else:
+            ans['UnreadCount'] = 0
         if 'chat_id' in message['message']:
             ans['ChatID'] = message['message']['chat_id']
             ans['UserName'] = message['message']['title']
