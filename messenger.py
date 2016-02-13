@@ -55,6 +55,68 @@ def replaceSmiles(text):
             ans = ans + c
     return ans
 
+def parseAttach(message):
+    ans = 'ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ:\n'
+    for attach in message['attachments']:
+        if attach['type'] == 'photo':
+            ans = ans + 'ФОТО: '
+            if 'photo_2560' in attach['photo']:
+                ans = ans + attach['photo']['photo_2560']
+            elif 'photo_1280' in attach['photo']:
+                ans = ans + attach['photo']['photo_1280']
+            elif 'photo_807' in attach['photo']:
+                ans = ans + attach['photo']['photo_807']
+            elif 'photo_604' in attach['photo']:
+                ans = ans + attach['photo']['photo_604']
+            elif 'photo_130' in attach['photo']:
+                ans = ans + attach['photo']['photo_130']
+            elif 'photo_75' in attach['photo']:
+                ans = ans + attach['photo']['photo_75']
+            else:
+                ans = ans + 'НЕ УДАЛОСЬ КОРРЕКТНО РАСПОЗНАТЬ ФОТО'
+                print(attach)
+            ans = ans + '\n'
+        elif attach['type'] == 'video':
+            ans = ans + 'ВИДЕОЗАПИСЬ: ' + attach['video']['title'] + ' (' + attach['video']['description'] + ')\n'
+        elif attach['type'] == 'audio':
+            ans = ans + 'АУДИО: ' + attach['audio']['artist'] + ' - ' + attach['audio']['title'] + ' (' + attach['audio']['url'] + ')\n'
+        elif attach['type'] == 'doc':
+            ans = ans + 'ДОКУМЕНТ ' + attach['doc']['ext'] + ' : ' + attach['doc']['url'] + '\n'
+        elif attach['type'] == 'wall':
+            ans = ans + 'ЗАПИСЬ СО СТЕНЫ\n'
+        elif attach['type'] == 'wall_reply':
+            ans = ans + 'КОММЕНТАРИЙ К ЗАПИСИ\n'
+        elif attach['type'] == 'sticker':
+            ans = ans + 'СТИКЕР: ' + attach['sticker']['photo_352'] + '\n'
+        elif attach['type'] == 'link':
+            ans = ans + 'ССЫЛКА: ' + attach['link']['url'] + '\n'
+        else:
+            ans = ans + 'НЕИЗВЕСТНЫЙ ТИП ВЛОЖЕНИЯ\n'
+            print(attach)
+    return ans
+
+def parseFwd(message):
+    ans = 'ПРИЛОЖЕННЫЕ СООБЩЕНИЯ:\n'
+    for msg in message['fwd_messages']:
+        ans = ans + parseMsg(msg)
+    return ans
+
+def parseMsg(message):
+    ans = 'НАЧАЛО СООБЩЕНИЯ\n'
+    Sender = api.users.get(user_id = message['user_id'])[0]
+    ans = ans + 'ОТПРАВИТЕЛЬ: ' + Sender['last_name'] + ' ' + Sender['first_name'] + '\n' + \
+          unixTimeConvert(message['date']) + '\n'
+    if 'title' in message:
+        ans = ans + 'ЗАГОЛОВОК: ' + message['title'] + '\n'
+    if 'body' in message:
+        ans = ans + 'СОДЕРЖАНИЕ: ' + replaceSmiles(message['body']) + '\n'
+    if 'attachments' in message:
+        ans = ans + parseAttach(message)
+    if 'fwd_messages' in message:
+        ans = ans + parseFwd(message)
+    ans = ans + 'КОНЕЦ СООБЩЕНИЯ\n'
+    return ans
+
 def getUserHistory(userID):
     messages = api.messages.getHistory(user_id = str(userID), count = 200)
     history = []
@@ -63,13 +125,13 @@ def getUserHistory(userID):
                unixTimeConvert(message['date']) + '\n' + \
                {0 : 'НЕ ПРОЧИТАНО', 1 : 'ПРОЧИТАНО'}[message['read_state']] + '\n'
         if 'title' in message:
-            text = text + message['title'] + '\n'
+            text = text + 'ЗАГОЛОВОК: ' + message['title'] + '\n'
         if 'body' in message:
-            text = text + replaceSmiles(message['body']) + '\n'
+            text = text + 'СОДЕРЖАНИЕ: ' + replaceSmiles(message['body']) + '\n'
         if 'attachments' in message:
-            text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ!\n'
+            text = text + parseAttach(message)
         if 'fwd_messages' in message:
-            text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ СООБЩЕНИЯ!\n'
+            text = text + parseFwd(message)
         history.append(text)
     return history[::-1]
 
@@ -92,9 +154,9 @@ def getChatHistory(chatID):
         if 'body' in message:
             text = text + replaceSmiles(message['body']) + '\n'
         if 'attachments' in message:
-            text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ!\n'
+            text = text + parseAttach(message)
         if 'fwd_messages' in message:
-            text = text + 'ЕСТЬ ПРИЛОЖЕННЫЕ СООБЩЕНИЯ!\n'
+            text = text + parseFwd(message)
         history.append(text)
     return history[::-1]
 
