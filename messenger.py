@@ -1,20 +1,20 @@
 import vk
 from datetime import datetime
 
-def unixTimeConvert(unix_time): # конвертируем время из unixtime в строку ДД/ММ/ГГГГ ЧЧ:ММ:СС
+def unixTimeConvert(unix_time):
     time = datetime.fromtimestamp(int(unix_time))
-    return '{}/{}/{} {}:{}:{}'.format(str(time.day).zfill(2), str(time.month).zfill(2), str(time.year).zfill(4), str(time.hour).zfill(2), str(time.minute).zfill(2), str(time.second).zfill(2))
+    return '{}/{}/{} {}:{}:{}'.format(time.day, time.month, time.year, time.hour, time.minute, time.second)
 
-with open('access_token.txt', 'r') as file: # открыть файл с токеном доступа и вытащить сессию для API
+with open('access_token.txt', 'r') as file:
     api = vk.API(vk.Session(access_token = file.readline()), v='5.45', lang = 'ru')
 
-def sendMessage(ID, text): # отправить текстовое сообщение пользователю с данным ID
+def sendMessage(ID, text):
     api.messages.send(user_id = ID, message = text)
 
-def sendChatMessage(ID, text): # отправить текстовое сообщение в чат с данным ID
+def sendChatMessage(ID, text):
     api.messages.send(chat_id = ID, message = text)
 
-smiles = { # таблица конвертации некоторых смайликов
+smiles = {
     128522 : ':-)',
     128515 : ':-D',
     128521 : ';-)',
@@ -43,7 +43,7 @@ smiles = { # таблица конвертации некоторых смайл
     128564 : 'z_Z'
 }
 
-def replaceSmiles(text): # заменить смайлики в тексте согласно таблице, те, которые невозможно заменить, представить в виде кодов
+def replaceSmiles(text):
     ans = ''
     for c in text:
         if ord(c) > 2 ** 16:
@@ -83,10 +83,8 @@ def parseAttach(message):
         elif attach['type'] == 'doc':
             ans = ans + 'ДОКУМЕНТ ' + attach['doc']['ext'] + ' : ' + attach['doc']['url'] + '\n'
         elif attach['type'] == 'wall':
-            print(attach)
             ans = ans + 'ЗАПИСЬ СО СТЕНЫ\n'
         elif attach['type'] == 'wall_reply':
-            print(attach)
             ans = ans + 'КОММЕНТАРИЙ К ЗАПИСИ\n'
         elif attach['type'] == 'sticker':
             ans = ans + 'СТИКЕР: ' + attach['sticker']['photo_352'] + '\n'
@@ -162,8 +160,8 @@ def getChatHistory(chatID):
         history.append(text)
     return history[::-1]
 
-def getVKdialogsList(): # получить информацию о диалогах текущего пользователя
-    VKdialogs = api.messages.getDialogs(count = 200)
+def getVKdialogsList():
+    VKdialogs = api.messages.getDialogs(count = 10)
     IDS = []
     for message in VKdialogs['items']:
         IDS.append(str(message['message']['user_id']))
@@ -174,24 +172,21 @@ def getVKdialogsList(): # получить информацию о диалог�
     result = []
     for message in VKdialogs['items']:
         ans = {}
-        if 'chat_id' in message['message']:
-            ans['IsChat'] = True
-            ans['UserName'] = message['message']['title']
-            ans['ChatID'] = message['message']['chat_id']
-            ans['Status'] = '------' # !!!!!!
-        else:
-            ans['IsChat'] = False
-            ans['UserName'] = Users[message['message']['user_id']]['last_name'] + ' ' + Users[message['message']['user_id']]['first_name']
-            ans['UserID'] = message['message']['user_id']
-            ans['Status'] = {0: 'Оффлайн', 1: 'Онлайн'}[Users[message['message']['user_id']]['online']]
+        ans['UserName'] = Users[message['message']['user_id']]['last_name'] + ' ' + Users[message['message']['user_id']]['first_name']
+        ans['UserID'] = message['message']['user_id']
+        ans['Status'] = {0: 'Оффлайн', 1: 'Онлайн'}[Users[message['message']['user_id']]['online']]
+        ans['IsChat'] = 'chat_id' in message['message']
         if 'unread' in message:
             ans['UnreadCount'] = message['unread']
         else:
             ans['UnreadCount'] = 0
+        if 'chat_id' in message['message']:
+            ans['ChatID'] = message['message']['chat_id']
+            ans['UserName'] = message['message']['title']
         result.append(ans)
     return result
 
-def getUserInfo(ID): # получить информацию о пользователе по ID
+def getUserInfo(ID):
     Info = api.users.get(user_ids = str(ID), fields = 'sex,bdate,online,status,last_seen,relation,friend_status')[0]
     ans = {}
     ans['ID'] = str(Info['id'])
@@ -224,7 +219,7 @@ def getUserInfo(ID): # получить информацию о пользова
     ans['FriendStatus'] = friendStatus[Info['friend_status']]
     return ans
 
-def getChatInfo(ID): # получить информацию о пользователях чата по ID чата
+def getChatInfo(ID):
     chatInfo = api.messages.getChat(chat_id = ID, fields = 'uid,first_name,last_name,online,last_seen')
     ans = []
     for user in chatInfo['users']:
