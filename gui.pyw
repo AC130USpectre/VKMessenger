@@ -1,6 +1,6 @@
-from tkinter import *
+import tkinter as tk
 import messenger
-import webbrowser
+#import webbrowser
 
 dialogsList = []
 def refreshDialogsList(event):
@@ -8,40 +8,53 @@ def refreshDialogsList(event):
         dialog.destroy()
         dialogsList.remove(dialog)
     VKdialogs = messenger.getVKdialogsList()
+    global canvasList
+    canvasList = tk.Canvas(dialogsFrame)
+    canvasList.grid(row = 0, column = 0)
+    global framesList
+    framesList = tk.Frame(canvasList)
+    canvasList.create_window((0, 0), window = framesList)
+    global scroll
+    scroll = tk.Scrollbar(dialogsFrame)
+    scroll.grid(row = 0, column = 1, sticky = 'nse')
     for VKdialog in VKdialogs:
-        dialogFrame = Dialog(dialogsFrame, VKdialog)
-        dialogFrame.grid(row = len(dialogsList) + 1, column = 1, sticky = W + E)
+        dialogFrame = Dialog(framesList, VKdialog)
+        dialogFrame.grid(row = len(dialogsList), column = 0, sticky = tk.W + tk.E)
         dialogsList.append(dialogFrame)
 
-class Dialog(Frame):
+class Dialog(tk.Frame):
     def __init__(self, window, VKDialog):
         super(Dialog, self).__init__(window, relief = 'solid', bd = 2)
         self.isChat = VKDialog['IsChat']
         self.ID = VKDialog[{True : 'ChatID', False : 'UserID'}[self.isChat]]
         bgColor = {True : 'yellow', False : 'white'}[self.isChat]
         self.config(bg = bgColor)
-        mCountLabel = Label(self, text = VKDialog['UnreadCount'], bg = bgColor)
+        mCountLabel = tk.Label(self, text = VKDialog['UnreadCount'], bg = bgColor)
         mCountLabel.grid(row = 0, column = 0)
-        statusLabel = Label(self, text = VKDialog['Status'], bg = bgColor)
-        statusLabel.grid(row = 0, column = 1, columnspan = 2)
-        Grid.columnconfigure(self, 1, weight = 1)
-        self.infoImage = PhotoImage(file = 'info.png')
-        infoButton = Button(self, image = self.infoImage)
-        infoButton.grid(row = 0, column = 3, sticky = E)
-        userNameLabel = Label(self, text = VKDialog['UserName'], bg = bgColor)
-        userNameLabel.grid(row = 1, column = 0, columnspan = 3)
-        Grid.columnconfigure(self, 0, weight = 1)
-        self.messImage = PhotoImage(file = 'dialog.png')
-        messButton = Button(self, image = self.messImage)
-        messButton.grid(row = 1, column = 3, sticky = E)
+        statusLabel = tk.Label(self, text = VKDialog['Status'], bg = bgColor)
+        statusLabel.grid(row = 0, column = 1, columnspan = 2, sticky = tk.W + tk.E)
+        self.infoImage = tk.PhotoImage(file = 'info.png')
+        infoButton = tk.Button(self, image = self.infoImage)
+        infoButton.grid(row = 0, column = 3, sticky = tk.E)
+        userNameLabel = tk.Label(self, text = VKDialog['UserName'], bg = bgColor)
+        userNameLabel.grid(row = 1, column = 0, columnspan = 3, sticky = tk.W + tk.E)
+        self.messImage = tk.PhotoImage(file = 'dialog.png')
+        messButton = tk.Button(self, image = self.messImage)
+        messButton.grid(row = 1, column = 3, sticky = tk.E)
+        tk.Grid.columnconfigure(self, 0, weight = 1)
+        tk.Grid.columnconfigure(self, 1, weight = 1)
+        tk.Grid.columnconfigure(self, 2, weight = 1)
 
-mainWindow = Tk()
+mainWindow = tk.Tk()
 
-refreshDialogsButton = Button(mainWindow, text = 'Обновить диалоги')
-refreshDialogsButton.grid(row = 1, column = 1, sticky = W + E)
+refreshDialogsButton = tk.Button(mainWindow, text = 'Обновить диалоги')
+refreshDialogsButton.grid(row = 0, column = 0, sticky = tk.W + tk.E)
 refreshDialogsButton.bind('<Button-1>', refreshDialogsList)
-dialogsFrame = Frame(mainWindow)
-dialogsFrame.grid(row = 2, column = 1)
+dialogsFrame = tk.Frame(mainWindow)
+dialogsFrame.grid(row = 1, column = 0)
+tk.Grid.columnconfigure(mainWindow, 0, weight = 1)
+tk.Grid.rowconfigure(mainWindow, 1, weight = 1)
+tk.Grid.columnconfigure(dialogsFrame, 0, weight = 1)
 
 mainWindow.mainloop()
 ##sys.stdout = open('logs.txt', 'w')
