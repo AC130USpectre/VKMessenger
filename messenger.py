@@ -178,7 +178,7 @@ def getVKdialogsList(): # получить информацию о диалог�
             ans['IsChat'] = True
             ans['UserName'] = message['message']['title']
             ans['ChatID'] = message['message']['chat_id']
-            ans['Status'] = '------' # !!!!!!
+            ans['Status'] = '[' + str(message['message']['users_count']) + ']'
         else:
             ans['IsChat'] = False
             ans['UserName'] = Users[message['message']['user_id']]['last_name'] + ' ' + Users[message['message']['user_id']]['first_name']

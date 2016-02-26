@@ -2,25 +2,121 @@ import tkinter as tk
 import messenger
 #import webbrowser
 
-dialogsList = []
-def refreshDialogsList(event):
+#sys.stdout = open('logs.txt', 'w')
+
+def setSunken(event):
+    event.widget.config(relief = 'sunken')
+
+def setRaised(event):
+    event.widget.config(relief = 'raised')
+
+def sendMessage(event):
+    if event.widget.master.isChat:
+        messenger.sendChatMessage(event.widget.master.ID, event.widget.master.chat.get(1.0, END))
+        event.widget.master.chat.delete(1.0, END)
+    else:
+        messenger.sendMessage(event.widget.master.ID, event.widget.master.chat.get(1.0, END))
+        event.widget.master.chat.delete(1.0, END)
+
+def refreshHistoryWindow(event):
+    event.widget.master.history.destroy()
+    historyFrame = tk.Frame(event.widget.master)
+    event.widget.master.history = historyFrame
+
+def refreshDialogsList(event): # что здесь происходит?!
+    global dialogsList
+    dialogsList = []
     for dialog in dialogsList:
-        dialog.destroy()
         dialogsList.remove(dialog)
     VKdialogs = messenger.getVKdialogsList()
-    global canvasList
-    canvasList = tk.Canvas(dialogsFrame)
-    canvasList.grid(row = 0, column = 0)
-    global framesList
-    framesList = tk.Frame(canvasList)
-    canvasList.create_window((0, 0), window = framesList)
-    global scroll
-    scroll = tk.Scrollbar(dialogsFrame)
-    scroll.grid(row = 0, column = 1, sticky = 'nse')
+    global framesListCanvas
+    framesListCanvas = tk.Canvas(dialogsFrame)
+    tk.Grid.columnconfigure(dialogsFrame, 0, weight = 1)
+    tk.Grid.rowconfigure(dialogsFrame, 0, weight = 1)
+    global framesListScroll
+    framesListScroll = tk.Scrollbar(dialogsFrame, command = framesListCanvas.yview)
+    framesList = tk.Frame(framesListCanvas)
+    tk.Grid.columnconfigure(framesList, 0, weight = 1)
+    framesListCanvas.configure(yscrollcommand = framesListScroll.set)
+    framesListScroll.grid(row = 0, column = 1, sticky = tk.N + tk.S)
+    framesListCanvas.grid(row = 0, column = 0, sticky = tk.N + tk.S + tk.W)
     for VKdialog in VKdialogs:
         dialogFrame = Dialog(framesList, VKdialog)
         dialogFrame.grid(row = len(dialogsList), column = 0, sticky = tk.W + tk.E)
         dialogsList.append(dialogFrame)
+    framesListCanvas.create_window((0, 0), window = framesList, anchor = 'nw')
+    def configureFramesList(event):
+        framesListCanvas.config(scrollregion = framesListCanvas.bbox('all'), width = framesList.winfo_width(), height = min(framesList.winfo_height(), mainWindow.winfo_screenheight() * 2 // 3))
+    framesList.bind('<Configure>', configureFramesList)
+
+def openChatWindow(event):
+    historyWindow = tk.Toplevel(mainWindow)
+    historyWindow.minsize(width = mainWindow.winfo_screenwidth() // 2, height = mainWindow.winfo_screenheight() // 2)
+    historyWindow.maxsize(width = mainWindow.winfo_screenwidth() * 5 // 6, height = mainWindow.winfo_screenheight() * 5 // 6)
+
+    refreshButton = tk.Button(historyWindow, text = 'Обновить')
+    refreshButton.bind('<Button-1>', refreshHistoryWindow, setSunken)
+    refreshButton.bind('<ButtonRelease-1>', setRaised)
+    refreshButton.grid(row = 0, column = 1, sticky = tk.E + tk.N)
+
+    historyWindow.ID = event.widget.master.ID
+    historyWindow.isChat = event.widget.master.isChat
+    if historyWindow.isChat:
+        (info, title) = messenger.getChatInfo(historyWindow.ID)
+        historyWindow.title(title)
+    else:
+        userInfo = messenger.getUserInfo(historyWindow.ID)
+        historyWindow.title(userInfo['Name'])
+        status = tk.Label(historyWindow, text = userInfo['IsOnline'])
+        status.grid(row = 0, column = 0, sticky = tk.W + tk.N)
+        historyWindow.userStatus = status
+
+    historyFrame = tk.Frame(historyWindow)
+    historyFrame.grid(row = 1, column = 0, columnspan = 2, sticky = tk.W + tk.E)
+    historyWindow.history = historyFrame
+
+    chatMemo = tk.Text(historyWindow, wrap = tk.WORD)
+    chatMemo.grid(row = 2, column = 0, sticky = tk.W + tk.S + tk.E)
+    chatMemo.bind('<Control-Enter>', refreshHistoryWindow, sendMessage)
+    historyWindow.chat = chatMemo
+
+    sendButton = tk.Button(historyWindow, text = 'Отправить')
+    sendButton.grid(row = 2, column = 1, sticky = tk.E + tk.N + tk.S)
+    sendButton.bind('<Button-1>', refreshHistoryWindow, sendMessage) # !!! много биндов !!!
+    sendButton.bind('<ButtonRelease-1>', setRaised)
+
+    tk.Grid.columnconfigure(historyWindow, 0, weight = 1)
+    historyWindow.mainloop()
+
+def openInfoWindow(event):
+    infoWindow = tk.Toplevel(mainWindow)
+    if event.widget.master.isChat:
+        (chatInfo, chatTitle) = messenger.getChatInfo(event.widget.master.ID)
+        infoWindow.title(chatTitle)
+        for i in range(len(chatInfo)):
+            tk.Label(infoWindow, text = chatInfo[i]['Name']).grid(row = (i + 1), column = 1)
+            tk.Label(infoWindow, text = chatInfo[i]['Status']).grid(row = (i + 1), column = 2)
+            tk.Label(infoWindow, text = chatInfo[i]['LastSeenTime']).grid(row = (i + 1), column = 3)
+    else:
+        userInfo = messenger.getUserInfo(event.widget.master.ID)
+        infoWindow.title(userInfo['ID'])
+        name = tk.Label(infoWindow, text = userInfo['Name'])
+        name.grid(row = 1, column = 1)
+        sex = tk.Label(infoWindow, text = 'Пол: ' + userInfo['Sex'])
+        sex.grid(row = 2, column = 1)
+        isOnline = tk.Label(infoWindow, text = userInfo['IsOnline'])
+        isOnline.grid(row = 1, column = 2)
+        lastSeenDate = tk.Label(infoWindow, text = userInfo['LastSeenDate'])
+        lastSeenDate.grid(row = 2, column = 2)
+        friendStatus = tk.Label(infoWindow, text = userInfo['FriendStatus'])
+        friendStatus.grid(row = 3, column = 1, columnspan = 2)
+        status = tk.Label(infoWindow, text = userInfo['Status'])
+        status.grid(row = 4, column = 1, columnspan = 2)
+        birthDate = tk.Label(infoWindow, text = 'Дата рождения: ' + userInfo['BirthDate'])
+        birthDate.grid(row = 5, column = 1, columnspan = 2)
+        relation = tk.Label(infoWindow, text = userInfo['Relation'])
+        relation.grid(row = 6, column = 1, columnspan = 2)
+    infoWindow.mainloop()
 
 class Dialog(tk.Frame):
     def __init__(self, window, VKDialog):
@@ -29,36 +125,47 @@ class Dialog(tk.Frame):
         self.ID = VKDialog[{True : 'ChatID', False : 'UserID'}[self.isChat]]
         bgColor = {True : 'yellow', False : 'white'}[self.isChat]
         self.config(bg = bgColor)
+        self.infoImage = tk.PhotoImage(file = 'info.png')
+        self.messImage = tk.PhotoImage(file = 'dialog.png')
+
         mCountLabel = tk.Label(self, text = VKDialog['UnreadCount'], bg = bgColor)
         mCountLabel.grid(row = 0, column = 0)
         statusLabel = tk.Label(self, text = VKDialog['Status'], bg = bgColor)
         statusLabel.grid(row = 0, column = 1, columnspan = 2, sticky = tk.W + tk.E)
-        self.infoImage = tk.PhotoImage(file = 'info.png')
         infoButton = tk.Button(self, image = self.infoImage)
         infoButton.grid(row = 0, column = 3, sticky = tk.E)
+        infoButton.bind('<Button-1>', openInfoWindow, setSunken)
+        infoButton.bind('<ButtonRelease-1>', setRaised)
         userNameLabel = tk.Label(self, text = VKDialog['UserName'], bg = bgColor)
         userNameLabel.grid(row = 1, column = 0, columnspan = 3, sticky = tk.W + tk.E)
-        self.messImage = tk.PhotoImage(file = 'dialog.png')
         messButton = tk.Button(self, image = self.messImage)
         messButton.grid(row = 1, column = 3, sticky = tk.E)
+        messButton.bind('<Button-1>', openChatWindow, setSunken)
+        messButton.bind('<ButtonRelease-1>', setRaised)
+
         tk.Grid.columnconfigure(self, 0, weight = 1)
         tk.Grid.columnconfigure(self, 1, weight = 1)
         tk.Grid.columnconfigure(self, 2, weight = 1)
 
 mainWindow = tk.Tk()
+mainWindow.wm_title('VKMessenger')
 
 refreshDialogsButton = tk.Button(mainWindow, text = 'Обновить диалоги')
 refreshDialogsButton.grid(row = 0, column = 0, sticky = tk.W + tk.E)
-refreshDialogsButton.bind('<Button-1>', refreshDialogsList)
-dialogsFrame = tk.Frame(mainWindow)
+refreshDialogsButton.bind('<Button-1>', refreshDialogsList, setSunken)
+refreshDialogsButton.bind('<ButtonRelease-1>', setRaised)
+
+dialogsFrame = tk.Frame(mainWindow, bg = 'yellow')
 dialogsFrame.grid(row = 1, column = 0)
+
 tk.Grid.columnconfigure(mainWindow, 0, weight = 1)
 tk.Grid.rowconfigure(mainWindow, 1, weight = 1)
-tk.Grid.columnconfigure(dialogsFrame, 0, weight = 1)
 
 mainWindow.mainloop()
-##sys.stdout = open('logs.txt', 'w')
-##
+
+#sys.stdout.close()
+
+#############################################################################################################################################################
 ##def sendMessage(event):
 ##    if event.widget.master.isChat:
 ##        messenger.sendChatMessage(event.widget.master.userID, event.widget.master.chat.get(1.0, END))
@@ -85,118 +192,3 @@ mainWindow.mainloop()
 ##        event.widget.master.history.config(state = 'disabled')
 ##        userInfo = messenger.getUserInfo(event.widget.master.userID)
 ##        event.widget.master.userStatus.config(text = userInfo['IsOnline'])
-##
-##def openChatWindow(event):
-##    event.widget.config(relief = 'sunken')
-##    historyWindow = Toplevel(dialogWindow)
-##    historyWindow.minsize(width = 580, height = 425)
-##    historyWindow.maxsize(width = 580, height = 425)
-##    refreshButton = Button(historyWindow, text = 'Обновить')
-##    refreshButton.bind('<Button-1>', refreshHistoryWindow)
-##    refreshButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
-##    refreshButton.place(x = 500, y = 0, width = 80, height = 25)
-##    historyWindow.userID = event.widget.master.userID
-##    historyWindow.isChat = event.widget.master.isChat
-##    if historyWindow.isChat:
-##        (info, title) = messenger.getChatInfo(historyWindow.userID)
-##        historyWindow.title(title)
-##    else:
-##        userInfo = messenger.getUserInfo(historyWindow.userID)
-##        historyWindow.title(userInfo['Name'])
-##        status = Label(historyWindow, text = userInfo['IsOnline'])
-##        status.place(x = 0, y = 0, width = 80, height = 25)
-##        historyWindow.userStatus = status
-##    historyMemo = Text(historyWindow, wrap = WORD)
-##    historyMemo.place(x = 0, y = 25, width = 580, height = 350)
-##    historyMemo.config(state = 'disabled')
-##    historyWindow.history = historyMemo
-##    chatMemo = Text(historyWindow, wrap = WORD)
-##    chatMemo.place(x = 0, y = 375, width = 500, height = 50)
-##    historyWindow.chat = chatMemo
-##    sendButton = Button(historyWindow, text = 'Отправить')
-##    sendButton.bind('<Button-1>', sendMessage)
-##    sendButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
-##    sendButton.bind('<Button-1>', refreshHistoryWindow, sendMessage)
-##    sendButton.place(x = 500, y = 375, width = 80, height = 50)
-##    historyWindow.mainloop()
-##
-##def openUserInfoWindow(event):
-##    event.widget.config(relief = 'sunken')
-##    userInfo = messenger.getUserInfo(event.widget.master.userID)
-##    infoWindow = Toplevel(dialogWindow)
-##    infoWindow.title(userInfo['ID'])
-##    name = Label(infoWindow, text = userInfo['Name'])
-##    name.grid(row = 1, column = 1)
-##    sex = Label(infoWindow, text = 'Пол: ' + userInfo['Sex'])
-##    sex.grid(row = 2, column = 1)
-##    isOnline = Label(infoWindow, text = userInfo['IsOnline'])
-##    isOnline.grid(row = 1, column = 2)
-##    lastSeenDate = Label(infoWindow, text = userInfo['LastSeenDate'])
-##    lastSeenDate.grid(row = 2, column = 2)
-##    friendStatus = Label(infoWindow, text = userInfo['FriendStatus'])
-##    friendStatus.grid(row = 3, column = 1, columnspan = 2)
-##    status = Label(infoWindow, text = userInfo['Status'])
-##    status.grid(row = 4, column = 1, columnspan = 2)
-##    birthDate = Label(infoWindow, text = 'Дата рождения: ' + userInfo['BirthDate'])
-##    birthDate.grid(row = 5, column = 1, columnspan = 2)
-##    relation = Label(infoWindow, text = userInfo['Relation'])
-##    relation.grid(row = 6, column = 1, columnspan = 2)
-##    infoWindow.mainloop()
-##
-##def openChatInfoWindow(event):
-##    event.widget.config(relief = 'sunken')
-##    (chatInfo, chatTitle) = messenger.getChatInfo(event.widget.master.userID)
-##    infoWindow = Toplevel(dialogWindow)
-##    infoWindow.title(chatTitle)
-##    for i in range(len(chatInfo)):
-##        Label(infoWindow, text = chatInfo[i]['Name']).grid(row = (i + 1), column = 1)
-##        Label(infoWindow, text = chatInfo[i]['Status']).grid(row = (i + 1), column = 2)
-##        Label(infoWindow, text = chatInfo[i]['LastSeenTime']).grid(row = (i + 1), column = 3)
-##    infoWindow.mainloop()
-##
-##class Dialog(Frame):
-##    def __init__(self, window, VKDialog, num):
-##        super(Dialog, self).__init__(window, bd = 2, bg = {False: 'white', True : 'yellow'}[VKDialog['IsChat']], relief = 'solid')
-##        unreadNum = Label(self, text = str(VKDialog['UnreadCount']), bg = {False: 'white', True : 'yellow'}[VKDialog['IsChat']])
-##        unreadNum.grid(row = 1, column = 1)
-##        name = Label(self, text = VKDialog['UserName'], bg = {False: 'white', True : 'yellow'}[VKDialog['IsChat']])
-##        name.grid(row = 2, column = 1, columnspan = 2)
-##        openDialogButton = Button(self, text = 'Сообщения')
-##        openDialogButton.grid(row = 3, column = 1)
-##        openDialogButton.bind('<Button-1>', openChatWindow)
-##        openDialogButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
-##        openInfoButton = Button(self, text = 'Инфо')
-##        openInfoButton.grid(row = 3, column = 2)
-##        if VKDialog['IsChat']:
-##            openInfoButton.bind('<Button-1>', openChatInfoWindow)
-##            self.userID = VKDialog['ChatID']
-##        else:
-##            openInfoButton.bind('<Button-1>', openUserInfoWindow)
-##            self.userID = VKDialog['UserID']
-##            status = Label(self, text = VKDialog['Status'], bg = 'white')
-##            status.grid(row = 1, column = 2)
-##        openInfoButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
-##        self.grid(row = num, column = 1)
-##        self.isChat = VKDialog['IsChat']
-##
-##dialogWindow = Tk()
-##dialogWindow.wm_title('VKMessenger')
-##refreshDialogsButton = Button(dialogWindow, text = 'Обновить диалоги')
-##refreshDialogsButton.grid(row = 1, column = 1)
-##dialogFramesList = []
-##def refreshDialogsList(event):
-##    event.widget.config(relief = 'sunken')
-##    for dialog in dialogFramesList:
-##        dialog.destroy()
-##        dialogFramesList.remove(dialog)
-##    VKdialogs = messenger.getVKdialogsList()
-##    i = 2
-##    for VKdialog in VKdialogs:
-##        dialogFramesList.append(Dialog(dialogWindow, VKdialog, i))
-##        i += 1
-##    
-##refreshDialogsButton.bind('<Button-1>', refreshDialogsList)
-##refreshDialogsButton.bind('<ButtonRelease-1>', lambda x: x.widget.config(relief = 'raised'))
-##dialogWindow.mainloop()
-##
-##sys.stdout.close()
