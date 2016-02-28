@@ -199,6 +199,8 @@ def openAttach(event):
 
 def showAttachList(event):
     window = tk.Toplevel(event.widget.master)
+    print(event.widget.master.master.master.master.master.option_get('title'))
+    window.title('')
 
     canvas = tk.Canvas(window)
     scroll = tk.Scrollbar(window, command = canvas.yview)
@@ -230,10 +232,9 @@ def showFwdList(event):
     scroll.grid(row = 0, column = 1, sticky = tk.N + tk.S)
     canvas.grid(row = 0, column = 0, sticky = tk.N + tk.S + tk.W)
     for i in range(len(event.widget.master.msgFwd)):
-        print(event.widget.master.msgFwd[i])
         button = tk.Button(frame, text = event.widget.master.msgFwd[i]['Name'])
         button.grid(row = i, column = 0)
-        button.attach = event.widget.master.msgFwd[i]
+        button.fwd = event.widget.master.msgFwd[i]
         button.bind('<Button-1>', openAttach)
         button.bind('<Button-1>', setSunken, '+')
         button.bind('<ButtonRelease-1>', setRaised)
