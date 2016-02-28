@@ -2,7 +2,7 @@ import tkinter as tk
 import messenger
 import webbrowser
 
-#sys.stdout = open('logs.txt', 'w')
+sys.stdout = open('logs.txt', 'w')
 
 def setSunken(event):
     event.widget.config(relief = 'sunken')
@@ -378,17 +378,4 @@ tk.Grid.rowconfigure(mainWindow, 1, weight = 1)
 
 mainWindow.mainloop()
 
-#sys.stdout.close()
-
-#############################################################################################################################################################
-##def sendMessage(event):
-##    if event.widget.master.isChat:
-##        messenger.sendChatMessage(event.widget.master.userID, event.widget.master.chat.get(1.0, END))
-##        event.widget.master.chat.delete(1.0, END)
-##    else:
-##        messenger.sendMessage(event.widget.master.userID, event.widget.master.chat.get(1.0, END))
-##        event.widget.master.chat.delete(1.0, END)
-##
-##def refreshHistoryWindow(event):
-##    event.widget.config(relief = 'sunken')
-##   
+sys.stdout.close()
