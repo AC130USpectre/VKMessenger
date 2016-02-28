@@ -123,8 +123,8 @@ def openChatWindow(event):
 
     chatMemo = tk.Text(historyWindow, wrap = tk.WORD, height = 3)
     chatMemo.grid(row = 2, column = 0, sticky = tk.W + tk.S + tk.E)
-    chatMemo.bind('<Control-Enter>', refreshHistoryWindow)
-    chatMemo.bind('<Control-Enter>', sendMessage, '+')
+    chatMemo.bind('<Control-Return>', refreshHistoryWindow)
+    chatMemo.bind('<Control-Return>', sendMessage, '+')
     historyWindow.chat = chatMemo
 
     sendButton = tk.Button(historyWindow, text = 'Отправить')
@@ -199,8 +199,6 @@ def openAttach(event):
 
 def showAttachList(event):
     window = tk.Toplevel(event.widget.master)
-    print(event.widget.master.master.master.master.master.option_get('title'))
-    window.title('')
 
     canvas = tk.Canvas(window)
     scroll = tk.Scrollbar(window, command = canvas.yview)
@@ -222,6 +220,57 @@ def showAttachList(event):
 
     window.mainloop()
 
+def openFwd(event):
+    window = tk.Toplevel(event.widget.master)
+
+    name = tk.Label(window, text = event.widget.fwd['Sender'])
+    name.grid(row = 0, column = 0, sticky = tk.W + tk.N)
+    date = tk.Label(window, text = event.widget.fwd['Date'])
+    date.grid(row = 0, column = 1, sticky = tk.E + tk.N)
+    if event.widget.fwd['Text'] or event.widget.fwd['Title']:
+        text = tk.Text(window, wrap = tk.WORD)
+        text.grid(row = 1, column = 0, columnspan = 2, sticky = tk.E + tk.W + tk.N + tk.S)
+        if event.widget.fwd['Text'] and event.widget.fwd['Title']:
+            text.insert(tk.END, event.widget.fwd['Title'] + '\n' + event.widget.fwd['Text'])
+        else:
+            text.insert(tk.END, event.widget.fwd['Title'] + event.widget.fwd['Text'])
+        text.config(state = 'disabled')
+        attach = tk.Button(window, text = '{} медиавложений'.format(str(len(event.widget.fwd['Attach']))))
+        attach.grid(row = 2, column = 0, sticky = tk.W + tk.S)
+        window.msgAttach = event.widget.fwd['Attach']
+        if not event.widget.fwd['Attach']:
+            attach.config(state = 'disabled')
+        attach.bind('<Button-1>', showAttachList)
+        attach.bind('<Button-1>', setSunken, '+')
+        attach.bind('<ButtonRelease-1>', setRaised)
+        fwd = tk.Button(window, text = '{} вложенных сообщений'.format(str(len(event.widget.fwd['Fwd']))))
+        fwd.grid(row = 2, column = 1, sticky = tk.S + tk.E)
+        window.msgFwd = event.widget.fwd['Fwd']
+        if not event.widget.fwd['Fwd']:
+            fwd.config(state = 'disabled')
+        fwd.bind('<Button-1>', showFwdList)
+        fwd.bind('<Button-1>', setSunken, '+')
+        fwd.bind('<ButtonRelease-1>', setRaised)
+    else:
+        attach = tk.Button(window, text = '{} медиавложений'.format(str(len(event.widget.fwd['Attach']))))
+        attach.grid(row = 1, column = 0, sticky = tk.W + tk.S)
+        window.msgAttach = event.widget.fwd['Attach']
+        if not event.widget.fwd['Attach']:
+            attach.config(state = 'disabled')
+        attach.bind('<Button-1>', showAttachList)
+        attach.bind('<Button-1>', setSunken, '+')
+        attach.bind('<ButtonRelease-1>', setRaised)
+        fwd = tk.Button(window, text = '{} вложенных сообщений'.format(str(len(event.widget.fwd['Fwd']))))
+        fwd.grid(row = 1, column = 1, sticky = tk.S + tk.E)
+        window.msgFwd = event.widget.fwd['Fwd']
+        if not event.widget.fwd['Fwd']:
+            fwd.config(state = 'disabled')
+        fwd.bind('<Button-1>', showFwdList)
+        fwd.bind('<Button-1>', setSunken, '+')
+        fwd.bind('<ButtonRelease-1>', setRaised)
+
+    window.mainloop()
+
 def showFwdList(event):
     window = tk.Toplevel(event.widget.master)
 
@@ -232,10 +281,10 @@ def showFwdList(event):
     scroll.grid(row = 0, column = 1, sticky = tk.N + tk.S)
     canvas.grid(row = 0, column = 0, sticky = tk.N + tk.S + tk.W)
     for i in range(len(event.widget.master.msgFwd)):
-        button = tk.Button(frame, text = event.widget.master.msgFwd[i]['Name'])
+        button = tk.Button(frame, text = event.widget.master.msgFwd[i]['Sender'])
         button.grid(row = i, column = 0)
         button.fwd = event.widget.master.msgFwd[i]
-        button.bind('<Button-1>', openAttach)
+        button.bind('<Button-1>', openFwd)
         button.bind('<Button-1>', setSunken, '+')
         button.bind('<ButtonRelease-1>', setRaised)
     canvas.create_window((0, 0), window = frame, anchor = 'nw')

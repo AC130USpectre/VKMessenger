@@ -147,7 +147,6 @@ def parseMsg(message): # распарсить отдельное вложенн�
 
 def getUserHistory(userID): # получить верхний уровень сообщений истории с пользователем с данным ID
     messages = api.messages.getHistory(user_id = str(userID), count = 200)
-    print(messages)
     history = []
     for message in messages['items']:
         msg = {}
