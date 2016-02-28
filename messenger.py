@@ -1,20 +1,20 @@
 import vk
 from datetime import datetime
 
-def unixTimeConvert(unix_time):
+def unixTimeConvert(unix_time): # конвертируем время из unixtime в строку ДД/ММ/ГГГГ ЧЧ:ММ:СС
     time = datetime.fromtimestamp(int(unix_time))
-    return '{}/{}/{} {}:{}:{}'.format(time.day, time.month, time.year, time.hour, time.minute, time.second)
+    return '{}/{}/{} {}:{}:{}'.format(str(time.day).zfill(2), str(time.month).zfill(2), str(time.year).zfill(4), str(time.hour).zfill(2), str(time.minute).zfill(2), str(time.second).zfill(2))
 
-with open('access_token.txt', 'r') as file:
+with open('access_token.txt', 'r') as file: # открыть файл с токеном доступа и вытащить сессию для API
     api = vk.API(vk.Session(access_token = file.readline()), v='5.45', lang = 'ru')
 
-def sendMessage(ID, text):
+def sendMessage(ID, text): # отправить текстовое сообщение пользователю с данным ID
     api.messages.send(user_id = ID, message = text)
 
-def sendChatMessage(ID, text):
+def sendChatMessage(ID, text): # отправить текстовое сообщение в чат с данным ID
     api.messages.send(chat_id = ID, message = text)
 
-smiles = {
+smiles = { # таблица конвертации некоторых смайликов
     128522 : ':-)',
     128515 : ':-D',
     128521 : ';-)',
@@ -43,7 +43,7 @@ smiles = {
     128564 : 'z_Z'
 }
 
-def replaceSmiles(text):
+def replaceSmiles(text): # заменить смайлики в тексте согласно таблице, те, которые невозможно заменить, представить в виде кодов
     ans = ''
     for c in text:
         if ord(c) > 2 ** 16:
@@ -55,87 +55,124 @@ def replaceSmiles(text):
             ans = ans + c
     return ans
 
-def parseAttach(message):
-    ans = 'ПРИЛОЖЕННЫЕ МЕДИАФАЙЛЫ:\n'
+def parseAttach(message): # распарсить медиавложения
+    ans = []
+    counters = {'Photo' : 0, 'Video' : 0, 'Audio' : 0, 'Doc' : 0, 'Wall' : 0, 'WallComm' : 0, 'Stick' : 0, 'Link' : 0}
     for attach in message['attachments']:
+        bufDict = {}
         if attach['type'] == 'photo':
-            ans = ans + 'ФОТО: '
+            counters['Photo'] += 1
+            bufDict['Type'] = 'Photo'
+            bufDict['Name'] = 'Картинка №{}'.format(str(counters['Photo']))
             if 'photo_2560' in attach['photo']:
-                ans = ans + attach['photo']['photo_2560']
+                bufDict['URL'] = attach['photo']['photo_2560']
             elif 'photo_1280' in attach['photo']:
-                ans = ans + attach['photo']['photo_1280']
+                bufDict['URL'] = attach['photo']['photo_1280']
             elif 'photo_807' in attach['photo']:
-                ans = ans + attach['photo']['photo_807']
+                bufDict['URL'] = attach['photo']['photo_807']
             elif 'photo_604' in attach['photo']:
-                ans = ans + attach['photo']['photo_604']
+                bufDict['URL'] = attach['photo']['photo_604']
             elif 'photo_130' in attach['photo']:
-                ans = ans + attach['photo']['photo_130']
+                bufDict['URL'] = attach['photo']['photo_130']
             elif 'photo_75' in attach['photo']:
-                ans = ans + attach['photo']['photo_75']
+                bufDict['URL'] = attach['photo']['photo_75']
             else:
-                ans = ans + 'НЕ УДАЛОСЬ КОРРЕКТНО РАСПОЗНАТЬ ФОТО'
                 print(attach)
-            ans = ans + '\n'
         elif attach['type'] == 'video':
-            ans = ans + 'ВИДЕОЗАПИСЬ: ' + attach['video']['title'] + ' (' + attach['video']['description'] + ')\n'
+            counters['Video'] += 1
+            bufDict['Type'] = 'Video'
+            bufDict['Name'] = attach['video']['title']
+            bufDict['Descr'] = attach['video']['description']
         elif attach['type'] == 'audio':
-            ans = ans + 'АУДИО: ' + attach['audio']['artist'] + ' - ' + attach['audio']['title'] + ' (' + attach['audio']['url'] + ')\n'
+            counters['Audio'] += 1
+            bufDict['Type'] = 'Audio'
+            bufDict['Name'] = attach['audio']['artist'] + ' - ' + attach['audio']['title']
+            bufDict['URL'] = attach['audio']['url']
         elif attach['type'] == 'doc':
-            ans = ans + 'ДОКУМЕНТ ' + attach['doc']['ext'] + ' : ' + attach['doc']['url'] + '\n'
+            counters['Doc'] += 1
+            bufDict['Type'] = 'Doc'
+            bufDict['Name'] = 'Документ {0} №{1}'.format(attach['doc']['ext'], str(counters['Doc']))
+            bufDict['URL'] = attach['doc']['url']
         elif attach['type'] == 'wall':
-            ans = ans + 'ЗАПИСЬ СО СТЕНЫ\n'
+            counters['Wall'] += 1
+            bufDict['Type'] = 'Wall'
+            bufDict['Name'] = 'Запись со стены №{}'.format(str(counters['Wall']))
         elif attach['type'] == 'wall_reply':
-            ans = ans + 'КОММЕНТАРИЙ К ЗАПИСИ\n'
+            counters['WallComm'] += 1
+            bufDict['Type'] = 'WallComm'
+            bufDict['Name'] = 'Комментарий к записи со стены №{}'.format(str(counters['WallComm']))
         elif attach['type'] == 'sticker':
-            ans = ans + 'СТИКЕР: ' + attach['sticker']['photo_352'] + '\n'
+            counters['Stick'] += 1
+            bufDict['Type'] = 'Stick'
+            bufDict['Name'] = 'Стикер №{}'.format(str(counters['Stick']))
+            bufDict['URL'] = attach['sticker']['photo_352']
         elif attach['type'] == 'link':
-            ans = ans + 'ССЫЛКА: ' + attach['link']['url'] + '\n'
+            counters['Link'] += 1
+            bufDict['Type'] = 'Link'
+            bufDict['Name'] = 'Ссылка №{}'.format(str(counters['Link']))
+            bufDict['URL'] = attach['link']['url']
         else:
-            ans = ans + 'НЕИЗВЕСТНЫЙ ТИП ВЛОЖЕНИЯ\n'
             print(attach)
+        ans.append(bufDict)
     return ans
 
-def parseFwd(message):
-    ans = 'ПРИЛОЖЕННЫЕ СООБЩЕНИЯ:\n'
+def parseFwd(message): # распарсить вложенные сообщения
+    ans = []
     for msg in message['fwd_messages']:
-        ans = ans + parseMsg(msg)
+        ans.append(parseMsg(msg))
     return ans
 
-def parseMsg(message):
-    ans = 'НАЧАЛО СООБЩЕНИЯ\n'
+def parseMsg(message): # распарсить отдельное вложенное сообщение
+    ans = {}
     Sender = api.users.get(user_id = message['user_id'])[0]
-    ans = ans + 'ОТПРАВИТЕЛЬ: ' + Sender['last_name'] + ' ' + Sender['first_name'] + '\n' + \
-          unixTimeConvert(message['date']) + '\n'
+    ans['Sender'] = Sender['last_name'] + ' ' + Sender['first_name']
+    ans['Date'] = unixTimeConvert(message['date'])
     if 'title' in message:
-        ans = ans + 'ЗАГОЛОВОК: ' + message['title'] + '\n'
+        ans['Title'] = message['title']
+    else:
+        ans['Title'] = ''
     if 'body' in message:
-        ans = ans + 'СОДЕРЖАНИЕ: ' + replaceSmiles(message['body']) + '\n'
+        ans['Text'] = replaceSmiles(message['body'])
+    else:
+        ans['Text'] = ''
     if 'attachments' in message:
-        ans = ans + parseAttach(message)
+        ans['Attach'] = parseAttach(message)
+    else:
+        ans['Attach'] = []
     if 'fwd_messages' in message:
-        ans = ans + parseFwd(message)
-    ans = ans + 'КОНЕЦ СООБЩЕНИЯ\n'
+        ans['Fwd'] = parseFwd(message)
+    else:
+        ans['Fwd'] = []
     return ans
 
-def getUserHistory(userID):
+def getUserHistory(userID): # получить верхний уровень сообщений истории с пользователем с данным ID
     messages = api.messages.getHistory(user_id = str(userID), count = 200)
     history = []
     for message in messages['items']:
-        text = {1 : 'ОТ ВАС', 0 : 'ОТ СОБЕСЕДНИКА'}[message['out']] + '\n' + \
-               unixTimeConvert(message['date']) + '\n' + \
-               {0 : 'НЕ ПРОЧИТАНО', 1 : 'ПРОЧИТАНО'}[message['read_state']] + '\n'
+        msg = {}
+        msg['Sender'] = {1 : 'ВЫ:', 0 : 'СОБЕСЕДНИК:'}[message['out']]
+        msg['Date'] = unixTimeConvert(message['date'])
+        msg['Status'] = {0 : 'НЕ ПРОЧИТАНО', 1 : 'ПРОЧИТАНО'}[message['read_state']]
         if 'title' in message:
-            text = text + 'ЗАГОЛОВОК: ' + message['title'] + '\n'
+            msg['Title'] = message['title']
+        else:
+            msg['Title'] = ''
         if 'body' in message:
-            text = text + 'СОДЕРЖАНИЕ: ' + replaceSmiles(message['body']) + '\n'
+            msg['Text'] = replaceSmiles(message['body'])
+        else:
+            msg['Text'] = ''
         if 'attachments' in message:
-            text = text + parseAttach(message)
+            msg['Attach'] = parseAttach(message)
+        else:
+            msg['Attach'] = []
         if 'fwd_messages' in message:
-            text = text + parseFwd(message)
-        history.append(text)
+            msg['Fwd'] = parseFwd(message)
+        else:
+            msg['Fwd'] = []
+        history.append(msg)
     return history[::-1]
 
-def getChatHistory(chatID):
+def getChatHistory(chatID): # получить верхний уровень сообщений истории из чата с данным ID
     messages = api.messages.getHistory(peer_id = 2000000000 + chatID, count = 200)
     IDS = []
     for message in messages['items']:
@@ -146,22 +183,34 @@ def getChatHistory(chatID):
         Users[user['id']] = user
     history = []
     for message in messages['items']:
+        msg = {}
         if message['out']:
-            text = 'ОТ ВАС\n'
+            msg['Sender'] = 'ВЫ:'
         else:
-            text = Users[message['user_id']]['last_name'] + ' ' + Users[message['user_id']]['first_name'] + '\n'
-        text = text + unixTimeConvert(message['date']) + '\n'
+            msg['Sender'] = Users[message['user_id']]['last_name'] + ' ' + Users[message['user_id']]['first_name'] + ':'
+        msg['Date'] = unixTimeConvert(message['date'])
+        if 'title' in message:
+            msg['Title'] = message['title']
+        else:
+            msg['Title'] = ''
         if 'body' in message:
-            text = text + replaceSmiles(message['body']) + '\n'
+            msg['Text'] = replaceSmiles(message['body'])
+        else:
+            msg['Text'] = ''
         if 'attachments' in message:
-            text = text + parseAttach(message)
+            msg['Attach'] = parseAttach(message)
+        else:
+            msg['Attach'] = []
         if 'fwd_messages' in message:
-            text = text + parseFwd(message)
-        history.append(text)
+            msg['Fwd'] = parseFwd(message)
+        else:
+            msg['Fwd'] = []
+        msg['Status'] = ''
+        history.append(msg)
     return history[::-1]
 
-def getVKdialogsList():
-    VKdialogs = api.messages.getDialogs(count = 10)
+def getVKdialogsList(): # получить информацию о диалогах текущего пользователя
+    VKdialogs = api.messages.getDialogs(count = 200)
     IDS = []
     for message in VKdialogs['items']:
         IDS.append(str(message['message']['user_id']))
@@ -172,21 +221,24 @@ def getVKdialogsList():
     result = []
     for message in VKdialogs['items']:
         ans = {}
-        ans['UserName'] = Users[message['message']['user_id']]['last_name'] + ' ' + Users[message['message']['user_id']]['first_name']
-        ans['UserID'] = message['message']['user_id']
-        ans['Status'] = {0: 'Оффлайн', 1: 'Онлайн'}[Users[message['message']['user_id']]['online']]
-        ans['IsChat'] = 'chat_id' in message['message']
+        if 'chat_id' in message['message']:
+            ans['IsChat'] = True
+            ans['UserName'] = message['message']['title']
+            ans['ChatID'] = message['message']['chat_id']
+            ans['Status'] = '[' + str(message['message']['users_count']) + ']'
+        else:
+            ans['IsChat'] = False
+            ans['UserName'] = Users[message['message']['user_id']]['last_name'] + ' ' + Users[message['message']['user_id']]['first_name']
+            ans['UserID'] = message['message']['user_id']
+            ans['Status'] = {0: 'Оффлайн', 1: 'Онлайн'}[Users[message['message']['user_id']]['online']]
         if 'unread' in message:
             ans['UnreadCount'] = message['unread']
         else:
             ans['UnreadCount'] = 0
-        if 'chat_id' in message['message']:
-            ans['ChatID'] = message['message']['chat_id']
-            ans['UserName'] = message['message']['title']
         result.append(ans)
     return result
 
-def getUserInfo(ID):
+def getUserInfo(ID): # получить информацию о пользователе по ID
     Info = api.users.get(user_ids = str(ID), fields = 'sex,bdate,online,status,last_seen,relation,friend_status')[0]
     ans = {}
     ans['ID'] = str(Info['id'])
@@ -219,7 +271,7 @@ def getUserInfo(ID):
     ans['FriendStatus'] = friendStatus[Info['friend_status']]
     return ans
 
-def getChatInfo(ID):
+def getChatInfo(ID): # получить информацию о пользователях чата по ID чата
     chatInfo = api.messages.getChat(chat_id = ID, fields = 'uid,first_name,last_name,online,last_seen')
     ans = []
     for user in chatInfo['users']:
