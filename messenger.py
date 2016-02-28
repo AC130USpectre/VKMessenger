@@ -91,7 +91,7 @@ def parseAttach(message): # распарсить медиавложения
         elif attach['type'] == 'doc':
             counters['Doc'] += 1
             bufDict['Type'] = 'Doc'
-            bufDict['Name'] = 'Документ {1} №{2}'.format(attach['doc']['ext'], str(counters['Doc']))
+            bufDict['Name'] = 'Документ {0} №{1}'.format(attach['doc']['ext'], str(counters['Doc']))
             bufDict['URL'] = attach['doc']['url']
         elif attach['type'] == 'wall':
             counters['Wall'] += 1
