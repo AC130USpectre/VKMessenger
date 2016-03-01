@@ -14,10 +14,9 @@ def setRaised(event):
 def sendMessage(event):
     if event.widget.master.isChat:
         messenger.sendChatMessage(event.widget.master.ID, event.widget.master.chat.get(1.0, tk.END))
-        event.widget.master.chat.delete(1.0, tk.END)
     else:
         messenger.sendMessage(event.widget.master.ID, event.widget.master.chat.get(1.0, tk.END))
-        event.widget.master.chat.delete(1.0, tk.END)
+    event.widget.master.chat.delete(1.0, tk.END)
 
 def refreshHistoryWindow(event):
     event.widget.master.history.destroy()
