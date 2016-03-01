@@ -42,7 +42,7 @@ def refreshHistoryWindow(event):
     for i in range(len(VKhistory)):
         mesFrame = MsgHistFrame(frame, VKhistory[i])
         mesFrame.grid(row = i, column = 0)
-    historyCanvas.create_window((0, 0), window = frame)#, anchor = 'nw')
+    historyCanvas.create_window((0, 0), window = frame, anchor = 'nw')
     def configureHistory(event):
         historyCanvas.config(scrollregion = historyCanvas.bbox('all'), width = frame.winfo_width(), height = min(4 * mesFrame.winfo_height(), frame.winfo_height()))
         historyCanvas.yview_moveto(1.0)
@@ -80,8 +80,8 @@ def openChatWindow(event):
     historyWindow.maxsize(width = mainWindow.winfo_screenwidth() * 5 // 6, height = mainWindow.winfo_screenheight() * 5 // 6)
 
     refreshButton = tk.Button(historyWindow, text = 'Обновить')
-    refreshButton.bind('<Button-1>', refreshHistoryWindow, setSunken)
-    refreshButton.bind('<Button-1>', setSunken, '+')
+    refreshButton.bind('<Button-1>', setSunken)
+    refreshButton.bind('<Button-1>', refreshHistoryWindow, '+')
     refreshButton.bind('<ButtonRelease-1>', setRaised)
     refreshButton.grid(row = 0, column = 1, sticky = tk.E + tk.N)
 
@@ -124,17 +124,17 @@ def openChatWindow(event):
         historyCanvas.yview_moveto(1.0)
     frame.bind('<Configure>', configureHistory)
 
-    chatMemo = tk.Text(historyWindow, wrap = tk.WORD, height = 3)
-    chatMemo.grid(row = 2, column = 0, sticky = tk.W + tk.S + tk.E)
-    chatMemo.bind('<Control-Return>', refreshHistoryWindow)
-    chatMemo.bind('<Control-Return>', sendMessage, '+')
+    chatMemo = tk.Text(historyWindow, wrap = tk.WORD, height = 5)
+    chatMemo.grid(row = 2, column = 0, sticky = tk.W + tk.S)
+    chatMemo.bind('<Control-Return>', sendMessage)
+    chatMemo.bind('<Control-Return>', refreshHistoryWindow, '+')
     historyWindow.chat = chatMemo
 
     sendButton = tk.Button(historyWindow, text = 'Отправить')
     sendButton.grid(row = 2, column = 1, sticky = tk.E + tk.N + tk.S)
-    sendButton.bind('<Button-1>', refreshHistoryWindow)
+    sendButton.bind('<Button-1>', setSunken)
     sendButton.bind('<Button-1>', sendMessage, '+')
-    sendButton.bind('<Button-1>', setSunken, '+')
+    sendButton.bind('<Button-1>', refreshHistoryWindow, '+')
     sendButton.bind('<ButtonRelease-1>', setRaised)
 
     tk.Grid.rowconfigure(historyWindow, 1, weight = 1)
