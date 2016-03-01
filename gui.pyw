@@ -1,6 +1,7 @@
 import tkinter as tk
 import messenger
 import webbrowser
+import sys
 
 sys.stdout = open('logs.txt', 'w')
 
@@ -41,12 +42,13 @@ def refreshHistoryWindow(event):
     for i in range(len(VKhistory)):
         mesFrame = MsgHistFrame(frame, VKhistory[i])
         mesFrame.grid(row = i, column = 0)
-    historyCanvas.create_window((0, 0), window = frame, anchor = 'nw')
+    historyCanvas.create_window((0, 0), window = frame)#, anchor = 'nw')
     def configureHistory(event):
         historyCanvas.config(scrollregion = historyCanvas.bbox('all'), width = frame.winfo_width(), height = min(4 * mesFrame.winfo_height(), frame.winfo_height()))
+        historyCanvas.yview_moveto(1.0)
     frame.bind('<Configure>', configureHistory)
 
-def refreshDialogsList(event): # что здесь происходит?!
+def refreshDialogsList(event):
     global dialogsList
     dialogsList = []
     for dialog in dialogsList:
@@ -119,6 +121,7 @@ def openChatWindow(event):
     historyCanvas.create_window((0, 0), window = frame, anchor = 'nw')
     def configureHistory(event):
         historyCanvas.config(scrollregion = historyCanvas.bbox('all'), width = frame.winfo_width(), height = min(4 * mesFrame.winfo_height(), frame.winfo_height()))
+        historyCanvas.yview_moveto(1.0)
     frame.bind('<Configure>', configureHistory)
 
     chatMemo = tk.Text(historyWindow, wrap = tk.WORD, height = 3)
@@ -136,6 +139,7 @@ def openChatWindow(event):
 
     tk.Grid.rowconfigure(historyWindow, 1, weight = 1)
     tk.Grid.columnconfigure(historyWindow, 0, weight = 1)
+
     historyWindow.mainloop()
 
 def openInfoWindow(event):
