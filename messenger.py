@@ -6,7 +6,7 @@ def unixTimeConvert(unix_time): # конвертируем время из unixt
     return '{}/{}/{} {}:{}:{}'.format(str(time.day).zfill(2), str(time.month).zfill(2), str(time.year).zfill(4), str(time.hour).zfill(2), str(time.minute).zfill(2), str(time.second).zfill(2))
 
 with open('access_token.txt', 'r') as file: # открыть файл с токеном доступа и вытащить сессию для API
-    api = vk.API(vk.Session(access_token = file.readline()), v='5.45', lang = 'ru')
+    api = vk.API(vk.Session(access_token = file.readline()), v='5.52', lang = 'ru')
 
 def sendMessage(ID, text): # отправить текстовое сообщение пользователю с данным ID
     api.messages.send(user_id = ID, message = text)
