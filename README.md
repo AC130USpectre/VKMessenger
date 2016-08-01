@@ -1,2 +1,2 @@
 # VKMessenger
-Simple VK messenger with GUI on python 3
+Simple VK messenger on PyQt4. Мессенджер для ВКонтакте на базе PyQt4.
