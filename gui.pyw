@@ -31,16 +31,20 @@ class Dialog(QtGui.QFrame):
 # обновление диалогов. Диалоги получаются из модуля messenger методом getVKdialogsList. Далее в виджет dialogsWindow.dialogsTab в столбец вставляются элементы-диалоги. 
 def refreshDialogs():
 	vkDialogsList = messenger.getVKdialogsList()
-	if dialogsWindow.dialogsTab.layout(): # если менеджер размещений уже есть, переназначаем его на временный QWidget, который удаляется сборщиком мусора. В результате менеджер также удаляется
-		QtGui.QWidget().setLayout(dialogsWindow.dialogsTab.layout())
-	grid = QtGui.QGridLayout(dialogsWindow.dialogsTab)
-	for i in range(len(vkDialogsList)):
+	grid = dialogsWindow.dialogsTab.layout() # получаем менеджер виджета с диалогами
+	while grid.itemAt(0): # удаляем из него элементы-диалоги
+		grid.itemAt(0).widget().setParent(None)
+	for i in range(len(vkDialogsList)): # добавляем новые элементы
 		grid.addWidget(Dialog(vkDialogsList[i]), i, 0)
 	if not len(vkDialogsList): # нет диалогов
 		label = QtGui.QLabel('Нет диалогов!')
 		grid.addWidget(label, 0, 0)
-	dialogsWindow.dialogsTab.setLayout(grid)
-	dialogsWindow.dialogsTab.show()
+	dialogsWindow.resize(grid.itemAt(0).widget().width(), grid.itemAt(0).widget().height())
+	#dialogsWindow.dialogsTab.parentWidget().setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
+	#grid.setColumnMinimumWidth(0, 2000)
+	#grid.setSizeConstraint(QtGui.QLayout.SetMinimumSize)
+	#dialogsWindow.dialogsTab.setMinimumWidth(grid.itemAt(0).widget().minimumWidth())
+	#dialogsWindow.dialogsTab.show()
 
 # основное окно с диалогами
 class DialogsWindow(QtGui.QMainWindow):
@@ -49,13 +53,20 @@ class DialogsWindow(QtGui.QMainWindow):
 		self.setWindowTitle('Диалоги') # окно с диалогами
 		formWidget = QtGui.QWidget(self) # центральный виджет окна с диалогами, где будут все элементы
 		self.setCentralWidget(formWidget)
-		self.dialogsTab = QtGui.QWidget(formWidget) # виджет с элементами-диалогами
-		self.dialogsTab.hide()
+		scroll = QtGui.QScrollArea(formWidget) # scroll для виджета с элементами-диалогами
+		self.dialogsTab = QtGui.QWidget(scroll) # виджет с элементами-диалогами
+		label = QtGui.QLabel('Обновите диалоги!') # добавляем на виджет с элементами-диалогами менеджер с этикеткой-предупреждением. Согласно документации, добавление менеджера размещений необходимо сделать ДО вызова scroll.setWidget()
+		grid = QtGui.QGridLayout(self.dialogsTab)
+		grid.addWidget(label, 0, 0, QtCore.Qt.AlignHCenter)
+		self.dialogsTab.setLayout(grid)
+		scroll.setWidget(self.dialogsTab) # добавили менеджер размещений и теперь можем назначить виджет с диалогами на scrollArea
+		scroll.setWidgetResizable(True)
+		scroll.setAlignment(QtCore.Qt.AlignHCenter)
 		refreshDialogsButton = QtGui.QPushButton('Обновить диалоги', parent = formWidget) # получить и изменить в окне имеющиеся диалоги пользователя
 		QtCore.QObject.connect(refreshDialogsButton, QtCore.SIGNAL('clicked()'), refreshDialogs)
 		searchCompanionButton = QtGui.QPushButton('Написать...', parent = formWidget) # написать первое сообщение новому собеседнику
 		grid = QtGui.QGridLayout(formWidget) # менеджер размещений для центрального виджета окна с диалогами
-		grid.addWidget(self.dialogsTab, 0, 0) # ставим в менеджер виджет с диалогами и две кнопки
+		grid.addWidget(scroll, 0, 0) # ставим в менеджер виджет с диалогами и две кнопки
 		grid.addWidget(refreshDialogsButton, 1, 0)
 		grid.addWidget(searchCompanionButton, 2, 0)
 		formWidget.setLayout(grid)
