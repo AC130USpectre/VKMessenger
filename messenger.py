@@ -1,12 +1,15 @@
-import vk
 from datetime import datetime
+import requests
 
 def unixTimeConvert(unix_time): # конвертируем время из unixtime в строку ДД/ММ/ГГГГ ЧЧ:ММ:СС
-    time = datetime.fromtimestamp(int(unix_time))
-    return '{}/{}/{} {}:{}:{}'.format(str(time.day).zfill(2), str(time.month).zfill(2), str(time.year).zfill(4), str(time.hour).zfill(2), str(time.minute).zfill(2), str(time.second).zfill(2))
+	time = datetime.fromtimestamp(int(unix_time))
+	return '{}/{}/{} {}:{}:{}'.format(str(time.day).zfill(2), str(time.month).zfill(2), str(time.year).zfill(4), str(time.hour).zfill(2), str(time.minute).zfill(2), str(time.second).zfill(2))
 
-with open('AccessToken.txt', 'r') as file: # открыть файл с токеном доступа и вытащить сессию для API
-    api = vk.API(vk.Session(access_token = file.readline()), v='5.52', lang = 'ru')
+with open('AccessToken.txt', 'r') as file: # открыть файл с токеном доступа и вытащить токен для дальнейшего использования в API
+	access_token = file.readline()
+
+end = "&lang=ru&v=5.59&access_token=" + access_token
+api_addr = "https://api.vk.com/method/"
 
 def sendMessage(ID, text): # отправить текстовое сообщение пользователю с данным ID
     api.messages.send(user_id = ID, message = text)
@@ -123,91 +126,93 @@ def parseFwd(message): # распарсить вложенные сообщен�
     return ans
 
 def parseMsg(message): # распарсить отдельное вложенное сообщение
-    ans = {}
-    Sender = api.users.get(user_id = message['user_id'])[0]
-    ans['Sender'] = Sender['last_name'] + ' ' + Sender['first_name']
-    ans['Date'] = unixTimeConvert(message['date'])
-    if 'title' in message:
-        ans['Title'] = message['title']
-    else:
-        ans['Title'] = ''
-    if 'body' in message:
-        ans['Text'] = replaceSmiles(message['body'])
-    else:
-        ans['Text'] = ''
-    if 'attachments' in message:
-        ans['Attach'] = parseAttach(message)
-    else:
-        ans['Attach'] = []
-    if 'fwd_messages' in message:
-        ans['Fwd'] = parseFwd(message)
-    else:
-        ans['Fwd'] = []
-    return ans
+	ans = {}
+	print(message)
+	Sender = requests.get(api_addr + "users.get?user_ids={}".format(str(message["user_id"])) + end).json()["response"][0]
+	print(Sender)
+	ans["Sender"] = Sender["last_name"] + " " + Sender["first_name"]
+	ans["Date"] = unixTimeConvert(message["date"])
+	if "title" in message:
+		ans["Title"] = message["title"]
+	else:
+		ans["Title"] = ""
+	if "body" in message:
+		ans["Text"] = replaceSmiles(message["body"])
+	else:
+		ans["Text"] = ""
+	if "attachments" in message:
+		ans["Attach"] = parseAttach(message)
+	else:
+		ans["Attach"] = []
+	if "fwd_messages" in message:
+		ans["Fwd"] = parseFwd(message)
+	else:
+		ans["Fwd"] = []
+	return ans
 
 def getUserHistory(userID): # получить верхний уровень сообщений истории с пользователем с данным ID
-    messages = api.messages.getHistory(user_id = str(userID), count = 200)
-    history = []
-    for message in messages['items']:
-        msg = {}
-        msg['Sender'] = {1 : 'ВЫ:', 0 : 'СОБЕСЕДНИК:'}[message['out']]
-        msg['Date'] = unixTimeConvert(message['date'])
-        msg['Status'] = {0 : 'НЕ ПРОЧИТАНО', 1 : 'ПРОЧИТАНО'}[message['read_state']]
-        if 'title' in message:
-            msg['Title'] = message['title']
-        else:
-            msg['Title'] = ''
-        if 'body' in message:
-            msg['Text'] = replaceSmiles(message['body'])
-        else:
-            msg['Text'] = ''
-        if 'attachments' in message:
-            msg['Attach'] = parseAttach(message)
-        else:
-            msg['Attach'] = []
-        if 'fwd_messages' in message:
-            msg['Fwd'] = parseFwd(message)
-        else:
-            msg['Fwd'] = []
-        history.append(msg)
-    return history[::-1]
+	messages = requests.get(api_addr + "messages.getHistory?user_id={}&count=200".format(str(userID)) + end).json()
+	history = []
+	for message in messages["response"]["items"]:
+		msg = {}
+		msg["Sender"] = {1 : "ВЫ:", 0 : "СОБЕСЕДНИК:"}[message["out"]]
+		msg["Date"] = unixTimeConvert(message["date"])
+		msg["Status"] = {0 : "НЕ ПРОЧИТАНО", 1 : "ПРОЧИТАНО"}[message["read_state"]]
+		if "title" in message:
+			msg["Title"] = message["title"]
+		else:
+			msg["Title"] = ""
+		if "body" in message:
+			msg["Text"] = replaceSmiles(message["body"])
+		else:
+			msg["Text"] = ""
+		if "attachments" in message:
+			msg["Attach"] = parseAttach(message)
+		else:
+			msg["Attach"] = []
+		if "fwd_messages" in message:
+			msg["Fwd"] = parseFwd(message)
+		else:
+			msg["Fwd"] = []
+		history.append(msg)
+	return history[::-1]
 
 def getChatHistory(chatID): # получить верхний уровень сообщений истории из чата с данным ID
-    messages = api.messages.getHistory(peer_id = 2000000000 + chatID, count = 200)
-    IDS = []
-    for message in messages['items']:
-        IDS.append(str(message['user_id']))
-    VKUsers = api.users.get(user_ids = ','.join(IDS))
-    Users = {}
-    for user in VKUsers:
-        Users[user['id']] = user
-    history = []
-    for message in messages['items']:
-        msg = {}
-        if message['out']:
-            msg['Sender'] = 'ВЫ:'
-        else:
-            msg['Sender'] = Users[message['user_id']]['last_name'] + ' ' + Users[message['user_id']]['first_name'] + ':'
-        msg['Date'] = unixTimeConvert(message['date'])
-        if 'title' in message:
-            msg['Title'] = message['title']
-        else:
-            msg['Title'] = ''
-        if 'body' in message:
-            msg['Text'] = replaceSmiles(message['body'])
-        else:
-            msg['Text'] = ''
-        if 'attachments' in message:
-            msg['Attach'] = parseAttach(message)
-        else:
-            msg['Attach'] = []
-        if 'fwd_messages' in message:
-            msg['Fwd'] = parseFwd(message)
-        else:
-            msg['Fwd'] = []
-        msg['Status'] = ''
-        history.append(msg)
-    return history[::-1]
+	messages = requests.get(api_addr + "messages.getHistory?peer_id={}&count=200".format(str(2000000000 + chatID)) + end).json()
+	IDS = set()
+	for message in messages["response"]["items"]:
+		IDS.add(str(message["user_id"]))
+	VKUsers = requests.get(api_addr + "users.get?user_ids={}".format(','.join(IDS)) + end).json()
+	Users = {}
+	for user in VKUsers["response"]:
+		Users[user["id"]] = user
+	history = []
+	for message in messages["response"]["items"]:
+		msg = {}
+		if message["out"]:
+			msg["Sender"] = "ВЫ:"
+		else:
+			msg["Sender"] = Users[message["user_id"]]["last_name"] + " " + Users[message["user_id"]]["first_name"] + ":"
+		msg["Date"] = unixTimeConvert(message["date"])
+		if "title" in message:
+			msg["Title"] = message["title"]
+		else:
+			msg["Title"] = ""
+		if "body" in message:
+			msg["Text"] = replaceSmiles(message["body"])
+		else:
+			msg["Text"] = ""
+		if "attachments" in message:
+			msg["Attach"] = parseAttach(message)
+		else:
+			msg["Attach"] = []
+		if "fwd_messages" in message:
+			msg["Fwd"] = parseFwd(message)
+		else:
+			msg["Fwd"] = []
+		msg["Status"] = ""
+		history.append(msg)
+	return history[::-1]
 
 def getVKdialogsList(): # получить информацию о диалогах текущего пользователя
     VKdialogs = api.messages.getDialogs(count = 200)
