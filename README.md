@@ -8,8 +8,8 @@ Simple VK messenger on PyQt4.
 
 Для получения токена вам необходимо выполнить следующие шаги:
 
-1) Создать своё Standalone-приложение (https://new.vk.com/editapp?act=create) и найти его ID.
+1) [Создать](https://new.vk.com/editapp?act=create) своё Standalone-приложение и найти его ID.
 
-2) Будучи авторизованным ВКонтакте, перейти по ссылке (https://oauth.vk.com/authorize?client_id={id приложения}&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=friends,photos,audio,video,docs,notes,pages,status,wall,groups,messages,offline&response_type=token&v=5.52), подтвердить разрешения и скопировать токен авторизации из ссылки-редиректа.
+2) Будучи авторизованным ВКонтакте, перейти [по ссылке](https://oauth.vk.com/authorize?client_id={id приложения}&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=friends,photos,audio,video,docs,notes,pages,status,wall,groups,messages,offline&response_type=token&v=5.59), подтвердить разрешения и скопировать токен авторизации из ссылки-редиректа.
 
 3) Полученный токен записать в файл AccessToken.txt и положить в одну папку с файлами приложения.
